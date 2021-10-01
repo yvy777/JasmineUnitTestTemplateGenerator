@@ -144,17 +144,6 @@ function isClassNameDeclaration(node: ts.Node): [isclassdecl: boolean, value: st
 	return [false, null];
 }
 
-// function findAllPublicDescribeMethodDeclaration(node: ts.Node) {
-// 	node.forEachChild(child => {
-// 		const [isclassdecl, value] = isDescribeMethodDeclaration(child);
-// 		if (isclassdecl) {
-// 			console.log(value?.getEnd());
-// 		}
-// 	});
-
-// 	node.forEachChild(findAllPublicDescribeMethodDeclaration);
-// }
-
 /**
  * A typical Angular test file class has one big describe named after the component
  *
@@ -238,15 +227,6 @@ function isFunctionLikeDeclaration(
 		ts.isFunctionDeclaration(node) ||
 		ts.isFunctionExpression(node)
 	);
-}
-
-function getAccessorDeclaration(node: ts.Node): ts.SyntaxKind | undefined {
-	const modifiers: ts.NodeArray<ts.Modifier> | undefined = node.modifiers;
-	if (modifiers) {
-		return modifiers[0].kind;
-	}
-
-	return undefined;
 }
 
 function insert(str: string, index: number, value: string): string {
