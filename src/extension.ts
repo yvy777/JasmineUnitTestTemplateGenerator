@@ -124,16 +124,16 @@ function insertAt(originalString: string, index: number, stringToAdd: string) {
 }
 
 function generateTestTemplate(className: string, functionToTest: string): string {
-	return `\ndescribe(nameof<${className}>("${functionToTest}"), () => {
-	it("should ", () => {
-		// Arrange
+	return `\n\n	describe(nameof<${className}>("${functionToTest}"), () => {
+		it("should ", () => {
+			// Arrange
 
-		// Act
+			// Act
 
-		// Assert
+			// Assert
 
-	});
-});\n`;
+		});
+	});`;
 }
 
 function isClassNameDeclaration(node: ts.Node): [isclassdecl: boolean, value: string | null] {
