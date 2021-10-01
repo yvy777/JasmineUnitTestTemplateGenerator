@@ -3,7 +3,7 @@
 import * as vscode from 'vscode';
 import * as ts from 'typescript';
 import * as fs from 'fs';
-
+import { Console } from 'console';
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -64,13 +64,12 @@ export function activate(context: vscode.ExtensionContext) {
 							true
 						);
 
-						// const [testFileProperlySetUp, lastDescribePosition] = findLastTestFileNodeMethodDeclaration(testSourceFile);
+						const [testFileProperlySetUp, lastDescribeTestPosition] = findLastTestDescribeMethod(testSourceFile);
 
-						findAllRecursiveExpression(testSourceFile);
-
-						// if (!testFileProperlySetUp) {
-						// 	vscode.window.showInformationMessage(`Could not find the describe enclosing tag for test file ${associatedTestFileName}`);
-						// }
+						if (!testFileProperlySetUp) {
+							vscode.window.showInformationMessage(`Could not find the describe enclosing tag for test file ${associatedTestFileName}`);
+							return;
+						}
 
 						if (testFileContent.includes(`describe(${functoTest})`) ||
 							testFileContent.includes(`describe(nameof<${className}>("${functoTest}")`)) {
@@ -82,7 +81,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 							var fileContent = fs.readFileSync(associatedTestFileName).toString();
 
-							const newFileContent = insert(fileContent, 4857, template);
+							const newFileContent = insert(fileContent, lastDescribeTestPosition, template);
 
 							// console.log(newFileContent);
 
@@ -145,24 +144,15 @@ function isClassNameDeclaration(node: ts.Node): [isclassdecl: boolean, value: st
 	return [false, null];
 }
 
-// function isDescribeMethodDeclaration(node: ts.Node): [isclassdecl: boolean, value: number] {
-// 	if (ts.isExpressionStatement(node)) {
-// 		if (node.getFullText().includes("describe")) {
-// 			console.log(node.end);
-// 			console.log(node.getFullText());
-// 			return [true, node.end];
+// function findAllPublicDescribeMethodDeclaration(node: ts.Node) {
+// 	node.forEachChild(child => {
+// 		const [isclassdecl, value] = isDescribeMethodDeclaration(child);
+// 		if (isclassdecl) {
+// 			console.log(value?.getEnd());
 // 		}
-// 	}
-// 	return [false, 0];
-// }
+// 	});
 
-// function findAllPublicMethodDeclaration(node: ts.Node) {
-// 	if (isFunctionLikeDeclaration(node)) {
-// 		if (getAccessorDeclaration(node))
-// 			console.log(node?.name?.getText());
-// 	}
-
-// 	node.forEachChild(findAllPublicMethodDeclaration);
+// 	node.forEachChild(findAllPublicDescribeMethodDeclaration);
 // }
 
 /**
@@ -182,59 +172,40 @@ function nodeContainsAtLeastOneDescribe(node: ts.Node): [hasDescribe: boolean, n
 	return componentNode;
 }
 
-function findAllExpressionStatement(node: ts.Node): number[] {
-	var allNodeEnd: number[] = [];
-
-	node.forEachChild(child => {
-		const [isclassdecl, value] = isExpressionStatementMethodDeclaration(child);
-		if (isclassdecl) {
-			allNodeEnd.push(value);
-		}
-	});
-
-	return allNodeEnd;
-}
-
-function findAllRecursiveExpression(node: ts.Node): void {
-	node.forEachChild(child => {
-		const [isclassdecl, value] = isDescribeMethodDeclaration(child);
-		if (isclassdecl) {
-			console.log(value);
-		}
-	});
-
-	node.forEachChild(findAllRecursiveExpression);
-
-}
-
-function findLastTestFileNodeMethodDeclaration(node: ts.Node): [isTestFileCorrectlySetUp: Boolean, lastDescribePosition: number] {
-	const [hasDescribe, childNode] = nodeContainsAtLeastOneDescribe(node);
-
-	if (hasDescribe) {
-		const allNodeEnd = findAllExpressionStatement(childNode as ts.Node);
-
-		return [true, allNodeEnd[allNodeEnd.length - 1]];
+function findLastTestDescribeMethod(node: ts.Node): [testFileProperlySetUp: boolean, lastDescribeTestPosition: number] {
+	const [hasDescribe, _] = nodeContainsAtLeastOneDescribe(node);
+	if (!hasDescribe) {
+		return [false, 0];
 	}
 
-	return [false, 0];
+	var nodeParser = new Queue<ts.Node>();
+	nodeParser.push(node);
+
+	var nodesEnds: number[] = [];
+	while (nodeParser.count() > 0) {
+		const treeNode: ts.Node = nodeParser.pop() as ts.Node;
+
+		treeNode.forEachChild(child => {
+			const [isclassdecl, node] = isDescribeMethodDeclaration(child);
+			if (isclassdecl) {
+				console.log(node?.getEnd());
+				nodesEnds.push(node?.getEnd() || 0);
+			}
+			nodeParser.push(child);
+		});
+	}
+
+	return [true, nodesEnds[nodesEnds.length - 1]];
 }
 
-function isDescribeMethodDeclaration(node: ts.Node): [isDescDecl: boolean, value: number] {
+function isDescribeMethodDeclaration(node: ts.Node): [isDescDecl: boolean, node: ts.Node | null] {
 	if (ts.isExpressionStatement(node)) {
 		if (node.getFullText().includes("describe")) {
-			return [true, node.end];
+			return [true, node];
 		}
 	}
 
-	return [false, 0];
-}
-
-function isExpressionStatementMethodDeclaration(node: ts.Node): [isDescDecl: boolean, value: number] {
-	if (ts.isExpressionStatement(node)) {
-		return [true, node.end];
-	}
-
-	return [false, 0];
+	return [false, null];
 }
 
 // Use printRecursiveFrom(activeSourceFile, 0, activeSourceFile);
@@ -276,4 +247,17 @@ function getAccessorDeclaration(node: ts.Node): ts.SyntaxKind | undefined {
 
 function insert(str: string, index: number, value: string): string {
 	return str.substr(0, index) + value + str.substr(index);
+}
+
+class Queue<T> {
+	_store: T[] = [];
+	push(val: T) {
+		this._store.push(val);
+	}
+	pop(): T | undefined {
+		return this._store.shift();
+	}
+	count(): number {
+		return this._store.length;
+	}
 }
