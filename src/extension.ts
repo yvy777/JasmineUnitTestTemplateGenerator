@@ -2,6 +2,7 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 import * as ts from 'typescript';
+import * as fs from 'fs';
 
 
 // this method is called when your extension is activated
@@ -27,8 +28,6 @@ export function activate(context: vscode.ExtensionContext) {
 
 			vscode.window.showInformationMessage(`Finding test file for ${originalFileName}`);
 
-			const fs = require('fs');
-
 			// // File name end by component.ts => so it should become component.spec.ts
 			const associatedTestFileName = insertAt(originalFileName as string, originalFileName?.length as number - 2, "spec.");
 
@@ -50,7 +49,7 @@ export function activate(context: vscode.ExtensionContext) {
 						);
 						var className: string = "";
 						activeSourceFile.forEachChild(child => {
-							const [isclassdecl, value] = findClassNameDeclaration(child);
+							const [isclassdecl, value] = isClassNameDeclaration(child);
 							if (isclassdecl) {
 								className = value as string;
 							}
@@ -65,10 +64,13 @@ export function activate(context: vscode.ExtensionContext) {
 							true
 						);
 
-						findAllPublicMethodDeclaration(activeSourceFile);
-						// printRecursiveFrom(activeSourceFile,0,activeSourceFile);
+						// const [testFileProperlySetUp, lastDescribePosition] = findLastTestFileNodeMethodDeclaration(testSourceFile);
 
-						// printRecursiveFrom(testSourceFile, 0, testSourceFile);
+						findAllRecursiveExpression(testSourceFile);
+
+						// if (!testFileProperlySetUp) {
+						// 	vscode.window.showInformationMessage(`Could not find the describe enclosing tag for test file ${associatedTestFileName}`);
+						// }
 
 						if (testFileContent.includes(`describe(${functoTest})`) ||
 							testFileContent.includes(`describe(nameof<${className}>("${functoTest}")`)) {
@@ -78,12 +80,19 @@ export function activate(context: vscode.ExtensionContext) {
 							vscode.window.showInformationMessage(`Generating test case for function : '${functoTest}'`);
 							var template = generateTestTemplate(className, functoTest);
 
-							fs.open(associatedTestFileName, 'a', function (err: any, fd: any) {
+							var fileContent = fs.readFileSync(associatedTestFileName).toString();
+
+							const newFileContent = insert(fileContent, 4857, template);
+
+							// console.log(newFileContent);
+
+							fs.open(associatedTestFileName, 'w', function (err: any, fd: any) {
 								if (err) {
 									console.log('Cant open file');
 								} else {
-									fs.write(fd, template, 0,
-										null, function (err: any, writtenbytes: string) {
+									var bufferedText = Buffer.from(newFileContent);
+									fs.write(fd, bufferedText, 0, bufferedText.length, 0,
+										(err: NodeJS.ErrnoException | null, writtenbytes: number, buffer: any) => {
 											if (err) {
 												console.log('Cant write to file');
 												vscode.window.showInformationMessage(`Template generation failed for function: ${functoTest}`);
@@ -128,7 +137,7 @@ function generateTestTemplate(className: string, functionToTest: string): string
 });\n`;
 }
 
-function findClassNameDeclaration(node: ts.Node): [isclassdecl: boolean, value: string | null] {
+function isClassNameDeclaration(node: ts.Node): [isclassdecl: boolean, value: string | null] {
 	if (ts.isClassDeclaration(node)) {
 		return [true, node?.name?.escapedText as string];
 	};
@@ -136,13 +145,96 @@ function findClassNameDeclaration(node: ts.Node): [isclassdecl: boolean, value: 
 	return [false, null];
 }
 
-function findAllPublicMethodDeclaration(node: ts.Node) {
-	if (isFunctionLikeDeclaration(node)) {
-		if (getAccessorDeclaration(node) === ts.SyntaxKind.PublicKeyword)
-			console.log(node?.name?.getText());
+// function isDescribeMethodDeclaration(node: ts.Node): [isclassdecl: boolean, value: number] {
+// 	if (ts.isExpressionStatement(node)) {
+// 		if (node.getFullText().includes("describe")) {
+// 			console.log(node.end);
+// 			console.log(node.getFullText());
+// 			return [true, node.end];
+// 		}
+// 	}
+// 	return [false, 0];
+// }
+
+// function findAllPublicMethodDeclaration(node: ts.Node) {
+// 	if (isFunctionLikeDeclaration(node)) {
+// 		if (getAccessorDeclaration(node))
+// 			console.log(node?.name?.getText());
+// 	}
+
+// 	node.forEachChild(findAllPublicMethodDeclaration);
+// }
+
+/**
+ * A typical Angular test file class has one big describe named after the component
+ *
+ */
+function nodeContainsAtLeastOneDescribe(node: ts.Node): [hasDescribe: boolean, node: ts.Node | null] {
+	var componentNode: [hasDescribe: boolean, node: ts.Node | null] = [false, null];
+	node.forEachChild(child => {
+		const [isclassdecl, _] = isDescribeMethodDeclaration(child);
+		if (isclassdecl) {
+			componentNode = [true, child];
+			return;
+		}
+	});
+
+	return componentNode;
+}
+
+function findAllExpressionStatement(node: ts.Node): number[] {
+	var allNodeEnd: number[] = [];
+
+	node.forEachChild(child => {
+		const [isclassdecl, value] = isExpressionStatementMethodDeclaration(child);
+		if (isclassdecl) {
+			allNodeEnd.push(value);
+		}
+	});
+
+	return allNodeEnd;
+}
+
+function findAllRecursiveExpression(node: ts.Node): void {
+	node.forEachChild(child => {
+		const [isclassdecl, value] = isDescribeMethodDeclaration(child);
+		if (isclassdecl) {
+			console.log(value);
+		}
+	});
+
+	node.forEachChild(findAllRecursiveExpression);
+
+}
+
+function findLastTestFileNodeMethodDeclaration(node: ts.Node): [isTestFileCorrectlySetUp: Boolean, lastDescribePosition: number] {
+	const [hasDescribe, childNode] = nodeContainsAtLeastOneDescribe(node);
+
+	if (hasDescribe) {
+		const allNodeEnd = findAllExpressionStatement(childNode as ts.Node);
+
+		return [true, allNodeEnd[allNodeEnd.length - 1]];
 	}
 
-	node.forEachChild(findAllPublicMethodDeclaration);
+	return [false, 0];
+}
+
+function isDescribeMethodDeclaration(node: ts.Node): [isDescDecl: boolean, value: number] {
+	if (ts.isExpressionStatement(node)) {
+		if (node.getFullText().includes("describe")) {
+			return [true, node.end];
+		}
+	}
+
+	return [false, 0];
+}
+
+function isExpressionStatementMethodDeclaration(node: ts.Node): [isDescDecl: boolean, value: number] {
+	if (ts.isExpressionStatement(node)) {
+		return [true, node.end];
+	}
+
+	return [false, 0];
 }
 
 // Use printRecursiveFrom(activeSourceFile, 0, activeSourceFile);
@@ -164,12 +256,12 @@ function isFunctionLikeDeclaration(
 	node: ts.Node
 ): node is ts.FunctionLikeDeclaration {
 	return (
+		ts.isGetAccessorDeclaration(node) ||
+		ts.isSetAccessorDeclaration(node) ||
+		ts.isMethodDeclaration(node) ||
 		ts.isArrowFunction(node) ||
 		ts.isFunctionDeclaration(node) ||
-		ts.isFunctionExpression(node) ||
-		ts.isGetAccessorDeclaration(node) ||
-		ts.isMethodDeclaration(node) ||
-		ts.isSetAccessorDeclaration(node)
+		ts.isFunctionExpression(node)
 	);
 }
 
@@ -180,4 +272,8 @@ function getAccessorDeclaration(node: ts.Node): ts.SyntaxKind | undefined {
 	}
 
 	return undefined;
+}
+
+function insert(str: string, index: number, value: string): string {
+	return str.substr(0, index) + value + str.substr(index);
 }
