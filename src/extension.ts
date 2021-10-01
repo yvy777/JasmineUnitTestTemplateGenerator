@@ -36,8 +36,7 @@ export function activate(context: vscode.ExtensionContext) {
 				if (err) {
 					vscode.window.showInformationMessage(`No matching associated test file with name:  ${associatedTestFileName}`);
 				}
-				else {
-					// vscode.window.showInformationMessage(`Found matching associated test file with name:  ${associatedTestFileName}`);
+				else {		
 					try {
 						const activeFileContent = fs.readFileSync(originalFileName, 'utf8') as string;
 
@@ -47,13 +46,8 @@ export function activate(context: vscode.ExtensionContext) {
 							ts.ScriptTarget.Latest, // languageVersion
 							true
 						);
-						var className: string = "";
-						activeSourceFile.forEachChild(child => {
-							const [isclassdecl, value] = isClassNameDeclaration(child);
-							if (isclassdecl) {
-								className = value as string;
-							}
-						});
+
+						var className = findClassNameMethod(activeSourceFile);
 
 						const testFileContent = fs.readFileSync(associatedTestFileName, 'utf8') as string;
 
@@ -103,7 +97,6 @@ export function activate(context: vscode.ExtensionContext) {
 								}
 							});
 						}
-
 					} catch (err) {
 						console.error(err);
 					}
@@ -159,6 +152,18 @@ function nodeContainsAtLeastOneDescribe(node: ts.Node): [hasDescribe: boolean, n
 	});
 
 	return componentNode;
+}
+
+function findClassNameMethod(activeSourceFile: ts.Node): string {
+	var className = "";
+	activeSourceFile.forEachChild(child => {
+		const [isclassdecl, value] = isClassNameDeclaration(child);
+		if (isclassdecl) {
+			className = value as string;
+		}
+	});
+
+	return className;
 }
 
 function findLastTestDescribeMethod(node: ts.Node): [testFileProperlySetUp: boolean, lastDescribeTestPosition: number] {
@@ -232,6 +237,16 @@ function isFunctionLikeDeclaration(
 function insert(str: string, index: number, value: string): string {
 	return str.substr(0, index) + value + str.substr(index);
 }
+
+function getAccessorDeclaration(node: ts.Node): ts.SyntaxKind | undefined {
+	const modifiers: ts.NodeArray<ts.Modifier> | undefined = node.modifiers;
+	if (modifiers) {
+		return modifiers[0].kind;
+	}
+
+	return undefined;
+}
+
 
 class Queue<T> {
 	_store: T[] = [];
