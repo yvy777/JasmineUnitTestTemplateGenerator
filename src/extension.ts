@@ -195,7 +195,11 @@ function findLastTestDescribeMethod(node: ts.Node): [testFileProperlySetUp: bool
 		});
 	}
 
-	return [true, nodesEnds[nodesEnds.length - 1]];
+	// Since there wont be any duplicate
+	const secondLargestPosition = nodesEnds.sort((a, b) => { return b - a; })[1];
+
+	// The largest describe position is the test file component itself e.g Describe("TestComponent")
+	return [true, secondLargestPosition];
 }
 
 function isDescribeMethodDeclaration(node: ts.Node): [isDescDecl: boolean, node: ts.Node | null] {
