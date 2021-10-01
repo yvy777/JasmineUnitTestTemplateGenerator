@@ -36,7 +36,7 @@ export function activate(context: vscode.ExtensionContext) {
 				if (err) {
 					vscode.window.showInformationMessage(`No matching associated test file with name:  ${associatedTestFileName}`);
 				}
-				else {		
+				else {
 					try {
 						const activeFileContent = fs.readFileSync(originalFileName, 'utf8') as string;
 
@@ -65,7 +65,7 @@ export function activate(context: vscode.ExtensionContext) {
 							return;
 						}
 
-						if (testFileContent.includes(`describe(${functoTest})`) ||
+						if (testFileContent.includes(`describe("${functoTest}")`) ||
 							testFileContent.includes(`describe(nameof<${className}>("${functoTest}")`)) {
 							vscode.window.showInformationMessage(`Function : '${functoTest}'' already has a test case in ${associatedTestFileName}`);
 						}
@@ -76,8 +76,6 @@ export function activate(context: vscode.ExtensionContext) {
 							var fileContent = fs.readFileSync(associatedTestFileName).toString();
 
 							const newFileContent = insert(fileContent, lastDescribeTestPosition, template);
-
-							// console.log(newFileContent);
 
 							fs.open(associatedTestFileName, 'w', function (err: any, fd: any) {
 								if (err) {
@@ -182,7 +180,6 @@ function findLastTestDescribeMethod(node: ts.Node): [testFileProperlySetUp: bool
 		treeNode.forEachChild(child => {
 			const [isclassdecl, node] = isDescribeMethodDeclaration(child);
 			if (isclassdecl) {
-				console.log(node?.getEnd());
 				nodesEnds.push(node?.getEnd() || 0);
 			}
 			nodeParser.push(child);
@@ -246,7 +243,6 @@ function getAccessorDeclaration(node: ts.Node): ts.SyntaxKind | undefined {
 
 	return undefined;
 }
-
 
 class Queue<T> {
 	_store: T[] = [];
