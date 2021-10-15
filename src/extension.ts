@@ -69,48 +69,20 @@ export function activate(context: vscode.ExtensionContext) {
 							return;
 						}
 						else if (hasOnlyClassDescribeStatement) {
-							const [hasItStatement, lastItStatementPosition] = findLastItExpressionStatement(testSourceFile);
+							const [hasItStatement, _, lastItStatementPosition] = findLastItExpressionStatement(testSourceFile);
 							if (hasItStatement) {
 								testTemplateCursorPosition = lastItStatementPosition;
+								addItTestTemplate(testFileContent, functoTest, className, associatedTestFileName, testTemplateCursorPosition);
 							}
 							else {
 								vscode.window.showInformationMessage(`Could not find the describe and It statement for test file ${associatedTestFileName}, 
-								File must contain at least one of these`);
+								File must contain at least one of these for the ctor.`);
 							}
 						} else {
 							testTemplateCursorPosition = lastDescribePosition;
+							addDescribeTestTemplate(testFileContent, functoTest, className, associatedTestFileName, testTemplateCursorPosition);
 						}
 
-						if (testFileContent.includes(`describe("${functoTest}"`) ||
-							testFileContent.includes(`describe(nameof<${className}>("${functoTest}")`)) {
-							vscode.window.showInformationMessage(`Function : '${functoTest}'' already has a test case in ${associatedTestFileName}`);
-						}
-						else {
-							vscode.window.showInformationMessage(`Generating test case for function : '${functoTest}'`);
-							var template = generateTestTemplate(className, functoTest);
-
-							var fileContent = fs.readFileSync(associatedTestFileName).toString();
-
-							const newFileContent = insert(fileContent, testTemplateCursorPosition, template);
-
-							fs.open(associatedTestFileName, 'w', function (err: any, fd: any) {
-								if (err) {
-									console.log('Cant open file');
-								} else {
-									var bufferedText = Buffer.from(newFileContent);
-									fs.write(fd, bufferedText, 0, bufferedText.length, 0,
-										(err: NodeJS.ErrnoException | null, writtenbytes: number, buffer: any) => {
-											if (err) {
-												console.log('Cant write to file');
-												vscode.window.showInformationMessage(`Template generation failed for function: ${functoTest}`);
-											} else {
-												console.log(writtenbytes + ' characters added to file');
-												vscode.window.showInformationMessage(`Template generation completed for function: ${functoTest}`);
-											}
-										});
-								}
-							});
-						}
 					} catch (err) {
 						console.error(err);
 					}
@@ -121,6 +93,53 @@ export function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(disposable);
 }
+function addDescribeTestTemplate(testFileContent: string, functoTest: string, className: string, associatedTestFileName: string, testTemplateCursorPosition: number) {
+	if (testFileContent.includes(`describe("${functoTest}"`) ||
+		testFileContent.includes(`describe(nameof<${className}>("${functoTest}")`)) {
+		vscode.window.showInformationMessage(`Function : '${functoTest}'' already has a test case in ${associatedTestFileName}`);
+	}
+	else {
+		writeTestTemplate(functoTest, className, associatedTestFileName, TestHeaderFormat.describe, testTemplateCursorPosition);
+	}
+}
+
+function addItTestTemplate(testFileContent: string, functoTest: string, className: string, associatedTestFileName: string, testTemplateCursorPosition: number) {
+	if (testFileContent.includes(`it("should ${functoTest}"`)) {
+		vscode.window.showInformationMessage(`Function : '${functoTest}'' already has a test case in ${associatedTestFileName}`);
+	}
+	else {
+		writeTestTemplate(functoTest, className, associatedTestFileName, TestHeaderFormat.it, testTemplateCursorPosition);
+	}
+}
+
+function writeTestTemplate(functoTest: string, className: string, associatedTestFileName: string, testHeaderFormat: TestHeaderFormat, testTemplateCursorPosition: number) {
+	vscode.window.showInformationMessage(`Generating test case for function : '${functoTest}'`);
+	var template = testHeaderFormat === TestHeaderFormat.describe ?
+		generateDescribeTestTemplate(className, functoTest) :
+		generateItTestTemplate(functoTest);
+
+	var fileContent = fs.readFileSync(associatedTestFileName).toString();
+
+	const newFileContent = insert(fileContent, testTemplateCursorPosition, template);
+
+	fs.open(associatedTestFileName, 'w', function (err: any, fd: any) {
+		if (err) {
+			console.log('Cant open file');
+		} else {
+			var bufferedText = Buffer.from(newFileContent);
+			fs.write(fd, bufferedText, 0, bufferedText.length, 0,
+				(err: NodeJS.ErrnoException | null, writtenbytes: number, buffer: any) => {
+					if (err) {
+						console.log('Cant write to file');
+						vscode.window.showInformationMessage(`Template generation failed for function: ${functoTest}`);
+					} else {
+						console.log(writtenbytes + ' characters added to file');
+						vscode.window.showInformationMessage(`Template generation completed for function: ${functoTest}`);
+					}
+				});
+		}
+	});
+}
 
 // this method is called when your extension is deactivated
 export function deactivate() {
@@ -130,7 +149,7 @@ function insertAt(originalString: string, index: number, stringToAdd: string) {
 	return originalString.substr(0, index) + stringToAdd + originalString.substr(index);
 }
 
-function generateTestTemplate(className: string, functionToTest: string): string {
+function generateDescribeTestTemplate(className: string, functionToTest: string): string {
 	return `\n\n	describe(nameof<${className}>("${functionToTest}"), () => {
 		it("should ", () => {
 			// Arrange
@@ -140,6 +159,16 @@ function generateTestTemplate(className: string, functionToTest: string): string
 			// Assert
 
 		});
+	});`;
+}
+
+function generateItTestTemplate(functionToTest: string): string {
+	return `\n\n	it("should ${functionToTest}", () => {
+			// Arrange
+
+			// Act
+
+			// Assert
 	});`;
 }
 
@@ -163,7 +192,7 @@ function findClassNameMethod(activeSourceFile: ts.Node): string {
 	return className;
 }
 
-function findLastItExpressionStatement(node: ts.Node): [hasItStatement: boolean, lastItStatementPosition: number] {
+function findLastItExpressionStatement(node: ts.Node): [hasItStatement: boolean, hasOnlyOneItStatement: boolean, lastItStatementPosition: number] {
 	var nodeParser = new Queue<ts.Node>();
 	nodeParser.push(node);
 
@@ -180,13 +209,17 @@ function findLastItExpressionStatement(node: ts.Node): [hasItStatement: boolean,
 		});
 	}
 
+	if (nodesEnds.length < 1) {
+		return [true, true, nodesEnds[0]];
+	}
+
 	// Since there wont be any duplicate
 	const largestPosition = nodesEnds.sort((a, b) => { return b - a; })[0];
 
-	return [true, largestPosition];
+	return [true, false, largestPosition];
 }
 
-function findLastDescribeExpressionStatement(node: ts.Node): [hasDescribeStatement: boolean, hasOnlyTestDescribeStatement: boolean, lastDescribePosition: number] {
+function findLastDescribeExpressionStatement(node: ts.Node): [hasDescribeStatement: boolean, hasOnlyClassDescribeStatement: boolean, lastDescribePosition: number] {
 	var nodeParser = new Queue<ts.Node>();
 	nodeParser.push(node);
 
@@ -217,7 +250,7 @@ function describeStatementAstTreeOutput(nodesEnds: number[]): [hasDescribeStatem
 		return [true, true, 0];
 	}
 
-	// Since there wont be any duplicate
+	// Since there wont be any duplicate and we dont want the class describe
 	const secondLargestPosition = nodesEnds.sort((a, b) => { return b - a; })[1];
 
 	// The largest describe position is the test file component itself e.g Describe("TestComponent")
@@ -226,7 +259,7 @@ function describeStatementAstTreeOutput(nodesEnds: number[]): [hasDescribeStatem
 
 function isExpressionMethodDeclaration(declarationType: string, node: ts.Node): [isDeclaration: boolean, node: ts.Node | null] {
 	if (ts.isExpressionStatement(node)) {
-		if (node.getFullText().includes(declarationType)) {
+		if (node.expression.getText().startsWith(declarationType)) {
 			return [true, node];
 		}
 	}
@@ -286,4 +319,9 @@ class Queue<T> {
 	count(): number {
 		return this._store.length;
 	}
+}
+
+const enum TestHeaderFormat {
+	it,
+	describe,
 }
