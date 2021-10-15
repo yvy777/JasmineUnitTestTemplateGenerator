@@ -37,39 +37,27 @@ export function activate(context: vscode.ExtensionContext) {
 				}
 				else {
 					try {
-						const activeFileContent = fs.readFileSync(originalFileName, 'utf8') as string;
+						const activeSourceFile = getFileContent(originalFileName);
 
-						const activeSourceFile = ts.createSourceFile(
-							originalFileName,   // fileName
-							activeFileContent, // source text
-							ts.ScriptTarget.Latest, // languageVersion
-							true
-						);
+						var className = findClassNameMethod(activeSourceFile.sourceFile);
 
-						var className = findClassNameMethod(activeSourceFile);
-
-						const testFileContent = fs.readFileSync(associatedTestFileName, 'utf8') as string;
-
-						const testSourceFile = ts.createSourceFile(
-							associatedTestFileName,   // fileName
-							testFileContent, // source text
-							ts.ScriptTarget.Latest, // languageVersion
-							true
-						);
+						const testSourceFile = getFileContent(associatedTestFileName);
 
 						var testTemplateCursorPosition = 0;
 
-						const [hasDescribeExpression, hasOnlyClassDescribeStatement, lastDescribePosition] = findLastDescribeExpressionStatement(testSourceFile);
+						const [hasDescribeExpression, hasOnlyClassDescribeStatement, lastDescribePosition] =
+						 findLastDescribeExpressionStatement(testSourceFile.sourceFile);
 
 						if (!hasDescribeExpression) {
 							vscode.window.showInformationMessage(`Could not find the describe enclosing tag for test file ${associatedTestFileName}`);
 							return;
 						}
 						else if (hasOnlyClassDescribeStatement) {
-							const [hasItStatement, lastItStatementPosition] = findLastItExpressionStatement(testSourceFile);
+							const [hasItStatement, lastItStatementPosition] = findLastItExpressionStatement(testSourceFile.sourceFile);
 							if (hasItStatement) {
 								testTemplateCursorPosition = lastItStatementPosition;
-								addItTestTemplate(testFileContent, functoTest, className, associatedTestFileName, testTemplateCursorPosition);
+								addItTestTemplate(testSourceFile.fileContent, functoTest, className,
+									 associatedTestFileName, testTemplateCursorPosition);
 							}
 							else {
 								vscode.window.showInformationMessage(`Could not find the describe and It statement for test file ${associatedTestFileName}, 
@@ -77,7 +65,7 @@ export function activate(context: vscode.ExtensionContext) {
 							}
 						} else {
 							testTemplateCursorPosition = lastDescribePosition;
-							addDescribeTestTemplate(testFileContent, functoTest, className, associatedTestFileName, testTemplateCursorPosition);
+							addDescribeTestTemplate(testSourceFile.fileContent, functoTest, className, associatedTestFileName, testTemplateCursorPosition);
 						}
 
 					} catch (err) {
@@ -90,6 +78,22 @@ export function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(disposable);
 }
+
+function getFileContent(fileName: string): { fileContent: string, sourceFile: ts.SourceFile } {
+	const fileContent = fs.readFileSync(fileName, 'utf8') as string;
+	const sourceFile = createSourceFile(fileName, fileContent);
+	return { fileContent, sourceFile };
+}
+
+function createSourceFile(associatedTestFileName: string, testFileContent: string): ts.SourceFile {
+	return ts.createSourceFile(
+		associatedTestFileName,  // fileName
+		testFileContent, // source text
+		ts.ScriptTarget.Latest, // file version
+		true
+	);
+}
+
 function addDescribeTestTemplate(testFileContent: string, functoTest: string, className: string, associatedTestFileName: string, testTemplateCursorPosition: number) {
 	if (testFileContent.includes(`describe("${functoTest}"`) ||
 		testFileContent.includes(`describe(nameof<${className}>("${functoTest}")`)) {
