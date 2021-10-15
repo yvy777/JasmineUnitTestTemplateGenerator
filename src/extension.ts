@@ -65,7 +65,9 @@ export function activate(context: vscode.ExtensionContext) {
 							return;
 						}
 
-						if (testFileContent.includes(`describe("${functoTest}")`) ||
+						printRecursiveFrom(testSourceFile,0,testSourceFile);
+
+						if (testFileContent.includes(`describe("${functoTest}"`) ||
 							testFileContent.includes(`describe(nameof<${className}>("${functoTest}")`)) {
 							vscode.window.showInformationMessage(`Function : '${functoTest}'' already has a test case in ${associatedTestFileName}`);
 						}
