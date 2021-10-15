@@ -58,14 +58,28 @@ export function activate(context: vscode.ExtensionContext) {
 							true
 						);
 
-						const [testFileProperlySetUp, lastDescribeTestPosition] = findLastTestDescribeMethod(testSourceFile);
+						printRecursiveFrom(testSourceFile, 0, testSourceFile);
 
-						if (!testFileProperlySetUp) {
+						var testTemplateCursorPosition = 0;
+
+						const [hasDescribeExpression, hasOnlyClassDescribeStatement, lastDescribePosition] = findLastDescribeExpressionStatement(testSourceFile);
+
+						if (!hasDescribeExpression) {
 							vscode.window.showInformationMessage(`Could not find the describe enclosing tag for test file ${associatedTestFileName}`);
 							return;
 						}
-
-						printRecursiveFrom(testSourceFile,0,testSourceFile);
+						else if (hasOnlyClassDescribeStatement) {
+							const [hasItStatement, lastItStatementPosition] = findLastItExpressionStatement(testSourceFile);
+							if (hasItStatement) {
+								testTemplateCursorPosition = lastItStatementPosition;
+							}
+							else {
+								vscode.window.showInformationMessage(`Could not find the describe and It statement for test file ${associatedTestFileName}, 
+								File must contain at least one of these`);
+							}
+						} else {
+							testTemplateCursorPosition = lastDescribePosition;
+						}
 
 						if (testFileContent.includes(`describe("${functoTest}"`) ||
 							testFileContent.includes(`describe(nameof<${className}>("${functoTest}")`)) {
@@ -77,7 +91,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 							var fileContent = fs.readFileSync(associatedTestFileName).toString();
 
-							const newFileContent = insert(fileContent, lastDescribeTestPosition, template);
+							const newFileContent = insert(fileContent, testTemplateCursorPosition, template);
 
 							fs.open(associatedTestFileName, 'w', function (err: any, fd: any) {
 								if (err) {
@@ -137,23 +151,6 @@ function isClassNameDeclaration(node: ts.Node): [isclassdecl: boolean, value: st
 	return [false, null];
 }
 
-/**
- * A typical Angular test file class has one big describe named after the component
- *
- */
-function nodeContainsAtLeastOneDescribe(node: ts.Node): [hasDescribe: boolean, node: ts.Node | null] {
-	var componentNode: [hasDescribe: boolean, node: ts.Node | null] = [false, null];
-	node.forEachChild(child => {
-		const [isclassdecl, _] = isDescribeMethodDeclaration(child);
-		if (isclassdecl) {
-			componentNode = [true, child];
-			return;
-		}
-	});
-
-	return componentNode;
-}
-
 function findClassNameMethod(activeSourceFile: ts.Node): string {
 	var className = "";
 	activeSourceFile.forEachChild(child => {
@@ -166,12 +163,7 @@ function findClassNameMethod(activeSourceFile: ts.Node): string {
 	return className;
 }
 
-function findLastTestDescribeMethod(node: ts.Node): [testFileProperlySetUp: boolean, lastDescribeTestPosition: number] {
-	const [hasDescribe, _] = nodeContainsAtLeastOneDescribe(node);
-	if (!hasDescribe) {
-		return [false, 0];
-	}
-
+function findLastItExpressionStatement(node: ts.Node): [hasItStatement: boolean, lastItStatementPosition: number] {
 	var nodeParser = new Queue<ts.Node>();
 	nodeParser.push(node);
 
@@ -180,7 +172,7 @@ function findLastTestDescribeMethod(node: ts.Node): [testFileProperlySetUp: bool
 		const treeNode: ts.Node = nodeParser.pop() as ts.Node;
 
 		treeNode.forEachChild(child => {
-			const [isclassdecl, node] = isDescribeMethodDeclaration(child);
+			const [isclassdecl, node] = isExpressionMethodDeclaration("it", child);
 			if (isclassdecl) {
 				nodesEnds.push(node?.getEnd() || 0);
 			}
@@ -189,15 +181,52 @@ function findLastTestDescribeMethod(node: ts.Node): [testFileProperlySetUp: bool
 	}
 
 	// Since there wont be any duplicate
+	const largestPosition = nodesEnds.sort((a, b) => { return b - a; })[0];
+
+	return [true, largestPosition];
+}
+
+function findLastDescribeExpressionStatement(node: ts.Node): [hasDescribeStatement: boolean, hasOnlyTestDescribeStatement: boolean, lastDescribePosition: number] {
+	var nodeParser = new Queue<ts.Node>();
+	nodeParser.push(node);
+
+	var nodesEnds: number[] = [];
+	while (nodeParser.count() > 0) {
+		const treeNode: ts.Node = nodeParser.pop() as ts.Node;
+
+		treeNode.forEachChild(child => {
+			const [isclassdecl, node] = isExpressionMethodDeclaration("describe", child);
+			if (isclassdecl) {
+				nodesEnds.push(node?.getEnd() || 0);
+			}
+			nodeParser.push(child);
+		});
+	}
+
+	return describeStatementAstTreeOutput(nodesEnds);
+}
+
+function describeStatementAstTreeOutput(nodesEnds: number[]): [hasDescribeStatement: boolean, hasOnlyClassDescribeStatement: boolean, lastDescribeTestPosition: number] {
+	// If no describe, the test component is not set correctly since it does not have a Describe("TestComponent").
+	if (nodesEnds.length === 0) {
+		return [false, false, 0];
+	}
+
+	// Has only class describe statement
+	if (nodesEnds.length === 1) {
+		return [true, true, 0];
+	}
+
+	// Since there wont be any duplicate
 	const secondLargestPosition = nodesEnds.sort((a, b) => { return b - a; })[1];
 
 	// The largest describe position is the test file component itself e.g Describe("TestComponent")
-	return [true, secondLargestPosition];
+	return [true, false, secondLargestPosition];
 }
 
-function isDescribeMethodDeclaration(node: ts.Node): [isDescDecl: boolean, node: ts.Node | null] {
+function isExpressionMethodDeclaration(declarationType: string, node: ts.Node): [isDeclaration: boolean, node: ts.Node | null] {
 	if (ts.isExpressionStatement(node)) {
-		if (node.getFullText().includes("describe")) {
+		if (node.getFullText().includes(declarationType)) {
 			return [true, node];
 		}
 	}
