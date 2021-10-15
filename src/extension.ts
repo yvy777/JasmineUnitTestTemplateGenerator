@@ -3,7 +3,6 @@
 import * as vscode from 'vscode';
 import * as ts from 'typescript';
 import * as fs from 'fs';
-import { Console } from 'console';
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -58,8 +57,6 @@ export function activate(context: vscode.ExtensionContext) {
 							true
 						);
 
-						printRecursiveFrom(testSourceFile, 0, testSourceFile);
-
 						var testTemplateCursorPosition = 0;
 
 						const [hasDescribeExpression, hasOnlyClassDescribeStatement, lastDescribePosition] = findLastDescribeExpressionStatement(testSourceFile);
@@ -69,7 +66,7 @@ export function activate(context: vscode.ExtensionContext) {
 							return;
 						}
 						else if (hasOnlyClassDescribeStatement) {
-							const [hasItStatement, _, lastItStatementPosition] = findLastItExpressionStatement(testSourceFile);
+							const [hasItStatement, lastItStatementPosition] = findLastItExpressionStatement(testSourceFile);
 							if (hasItStatement) {
 								testTemplateCursorPosition = lastItStatementPosition;
 								addItTestTemplate(testFileContent, functoTest, className, associatedTestFileName, testTemplateCursorPosition);
@@ -192,7 +189,7 @@ function findClassNameMethod(activeSourceFile: ts.Node): string {
 	return className;
 }
 
-function findLastItExpressionStatement(node: ts.Node): [hasItStatement: boolean, hasOnlyOneItStatement: boolean, lastItStatementPosition: number] {
+function findLastItExpressionStatement(node: ts.Node): [hasItStatement: boolean, lastItStatementPosition: number] {
 	var nodeParser = new Queue<ts.Node>();
 	nodeParser.push(node);
 
@@ -210,13 +207,13 @@ function findLastItExpressionStatement(node: ts.Node): [hasItStatement: boolean,
 	}
 
 	if (nodesEnds.length < 1) {
-		return [true, true, nodesEnds[0]];
+		return [false, 0];
 	}
 
 	// Since there wont be any duplicate
 	const largestPosition = nodesEnds.sort((a, b) => { return b - a; })[0];
 
-	return [true, false, largestPosition];
+	return [true, largestPosition];
 }
 
 function findLastDescribeExpressionStatement(node: ts.Node): [hasDescribeStatement: boolean, hasOnlyClassDescribeStatement: boolean, lastDescribePosition: number] {
