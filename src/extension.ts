@@ -7,72 +7,92 @@ import * as fs from 'fs';
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
-	let disposable = vscode.commands.registerCommand('TestHelper.buildTestMethod', () => {
+	let disposable = vscode.commands.registerCommand('TestHelper.buildTestMethod', async () => {
 		const activeEditor = vscode.window.activeTextEditor;
 		if (activeEditor) {
-			const lineContent: string = activeEditor.document.lineAt(activeEditor.selection.active.line).text;
+			await vscode.window.withProgress({
+				location: vscode.ProgressLocation.Notification,
+				title: "Starting test template process generation!",
+				cancellable: true
+			}, async (progress, token) => {
+				token.onCancellationRequested(() => {
+					console.log("User canceled the operation");
+				});
 
-			var regex = new RegExp('([a-zA-Z{1}][a-zA-Z0-9_]+)(?=\\()', 'i');
+				const lineContent: string = activeEditor.document.lineAt(activeEditor.selection.active.line).text;
 
-			var match = regex.exec(lineContent);
-			if (!match) {
-				vscode.window.showErrorMessage('no function to test');
-			}
+				var regex = new RegExp('([a-zA-Z{1}][a-zA-Z0-9_]+)(?=\\()', 'i');
 
-			const functoTest = match![0] as string;
-
-			vscode.window.showInformationMessage(`Generating unit test function template for ${functoTest}`);
-
-			const originalFileName = activeEditor.document.fileName;
-
-			vscode.window.showInformationMessage(`Finding test file for ${originalFileName}`);
-
-			// // File name end by component.ts => so it should become component.spec.ts
-			const associatedTestFileName = insertAt(originalFileName as string, originalFileName?.length as number - 2, "spec.");
-
-			fs.access(associatedTestFileName, fs.constants.R_OK | fs.constants.W_OK, (err: any) => {
-				console.log('\n> Checking Permission for reading and writing to file');
-				if (err) {
-					vscode.window.showInformationMessage(`No matching associated test file with name:  ${associatedTestFileName}`);
+				var match = regex.exec(lineContent);
+				if (!match) {
+					vscode.window.showErrorMessage('no function to test');
 				}
-				else {
-					try {
-						const activeSourceFile = getFileContent(originalFileName);
 
-						var className = findClassNameMethod(activeSourceFile.sourceFile);
+				const functoTest = match![0] as string;
 
-						const testSourceFile = getFileContent(associatedTestFileName);
+				progress.report({ increment: 20, message: `Generating unit test function template for ${functoTest}` });
 
-						var testTemplateCursorPosition = 0;
+				const originalFileName = activeEditor.document.fileName;
 
-						const [hasDescribeExpression, hasOnlyClassDescribeStatement, lastDescribePosition] =
-						 findLastDescribeExpressionStatement(testSourceFile.sourceFile);
+				progress.report({ increment: 40, message: `Finding test file for ${originalFileName}` });
 
-						if (!hasDescribeExpression) {
-							vscode.window.showInformationMessage(`Could not find the describe enclosing tag for test file ${associatedTestFileName}`);
-							return;
-						}
-						else if (hasOnlyClassDescribeStatement) {
-							const [hasItStatement, lastItStatementPosition] = findLastItExpressionStatement(testSourceFile.sourceFile);
-							if (hasItStatement) {
-								testTemplateCursorPosition = lastItStatementPosition;
-								addItTestTemplate(testSourceFile.fileContent, functoTest, className,
-									 associatedTestFileName, testTemplateCursorPosition);
-							}
-							else {
-								vscode.window.showInformationMessage(`Could not find the describe and It statement for test file ${associatedTestFileName}, 
-								File must contain at least one of these for the ctor.`);
-							}
-						} else {
-							testTemplateCursorPosition = lastDescribePosition;
-							addDescribeTestTemplate(testSourceFile.fileContent, functoTest, className, associatedTestFileName, testTemplateCursorPosition);
-						}
+				// // File name end by component.ts => so it should become component.spec.ts
+				const associatedTestFileName = insertAt(originalFileName as string, originalFileName?.length as number - 2, "spec.");
 
-					} catch (err) {
-						console.error(err);
+				fs.access(associatedTestFileName, fs.constants.R_OK | fs.constants.W_OK, (err: any) => {
+
+					progress.report({ increment: 60, message: `Checking Permission for reading and writing to file ${associatedTestFileName}` });
+
+					if (err) {
+						vscode.window.showInformationMessage(`No matching associated test file with name:  ${associatedTestFileName}`);
 					}
-				}
+					else {
+						try {
+							progress.report({ increment: 70, message: `Preparing to generate test template for ${functoTest}` });
+
+							const activeSourceFile = getFileContent(originalFileName);
+
+							var className = findClassNameMethod(activeSourceFile.sourceFile);
+
+							const testSourceFile = getFileContent(associatedTestFileName);
+
+							var testTemplateCursorPosition = 0;
+
+							const [hasDescribeExpression, hasOnlyClassDescribeStatement, lastDescribePosition] = findLastDescribeExpressionStatement(testSourceFile.sourceFile);
+
+							if (!hasDescribeExpression) {
+								vscode.window.showInformationMessage(`Could not find the describe enclosing tag for test file ${associatedTestFileName}`);
+								return;
+							}
+							else if (hasOnlyClassDescribeStatement) {
+								progress.report({ increment: 80, message: `Writing test template for ${functoTest} using 'it' format.` });
+								const [hasItStatement, lastItStatementPosition] = findLastItExpressionStatement(testSourceFile.sourceFile);
+								if (hasItStatement) {
+									testTemplateCursorPosition = lastItStatementPosition;
+									addItTestTemplate(testSourceFile.fileContent, functoTest, className,
+										associatedTestFileName, testTemplateCursorPosition);
+								}
+								else {
+									vscode.window.showInformationMessage(`Could not find the describe and It statement for test file ${associatedTestFileName}, 
+								File must contain at least one of these for the ctor.`);
+								}
+							} else {
+								progress.report({ increment: 80, message: `Writing test template for ${functoTest} using 'describe' format.` });
+								testTemplateCursorPosition = lastDescribePosition;
+								addDescribeTestTemplate(testSourceFile.fileContent, functoTest, className, associatedTestFileName, testTemplateCursorPosition);
+							}
+
+							progress.report({ increment: 100, message: `Template generation completed for function: ${functoTest}` });
+
+						} catch (err) {
+							console.error(err);
+						}
+					}
+				});
 			});
+		}
+		else {
+			vscode.window.showInformationMessage('Could not find any active document to begin test generating');
 		};
 	});
 
@@ -114,7 +134,7 @@ function addItTestTemplate(testFileContent: string, functoTest: string, classNam
 }
 
 function writeTestTemplate(functoTest: string, className: string, associatedTestFileName: string, testHeaderFormat: TestHeaderFormat, testTemplateCursorPosition: number) {
-	vscode.window.showInformationMessage(`Generating test case for function : '${functoTest}'`);
+	// vscode.window.showInformationMessage(`Generating test case for function : '${functoTest}'`);
 	var template = testHeaderFormat === TestHeaderFormat.describe ?
 		generateDescribeTestTemplate(className, functoTest) :
 		generateItTestTemplate(functoTest);
@@ -135,7 +155,7 @@ function writeTestTemplate(functoTest: string, className: string, associatedTest
 						vscode.window.showInformationMessage(`Template generation failed for function: ${functoTest}`);
 					} else {
 						console.log(writtenbytes + ' characters added to file');
-						vscode.window.showInformationMessage(`Template generation completed for function: ${functoTest}`);
+						// vscode.window.showInformationMessage(`Template generation completed for function: ${functoTest}`);
 					}
 				});
 		}
