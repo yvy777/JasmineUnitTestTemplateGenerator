@@ -10,6 +10,7 @@ export class SingleFunctionSelectionGeneratorProvider {
 
     public static register(context: vscode.ExtensionContext): vscode.Disposable {
         return vscode.commands.registerCommand('TestHelper.buildTestMethod', () => {
+
             const activeEditor = vscode.window.activeTextEditor;
             if (activeEditor) {
                 vscode.window.withProgress({

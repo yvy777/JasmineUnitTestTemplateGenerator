@@ -10,7 +10,8 @@
 		"Other"
 	],
 	"activationEvents": [
-		"onCommand:TestHelper.buildTestMethod"
+		"onCommand:TestHelper.buildTestMethod",
+		"onCommand:TestHelper.buildTestMethodForEntireFile"
 	],
 	"main": "./out/extension.js",
 	"contributes": {
