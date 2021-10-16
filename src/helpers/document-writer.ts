@@ -1,7 +1,8 @@
-import { StringManipulator } from "./string-manipulator";
-import { TemplateGenerator } from "./template-generator";
-import { TestHeaderFormat } from "./test-header-format";
+
 import * as fs from 'fs';
+import { StringManipulator } from './string-manipulator';
+import { TemplateGenerator } from './template-generator';
+import { TestHeaderFormat } from './test-header-format';
 
 export class DocumentWriter {
 

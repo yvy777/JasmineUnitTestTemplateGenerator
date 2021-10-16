@@ -3,17 +3,16 @@
 import * as vscode from 'vscode';
 import * as ts from 'typescript';
 import * as fs from 'fs';
-import { AstTreeFinder } from './ast-tree-finder';
-import { TemplateGenerator } from './template-generator';
-import { StringManipulator } from './string-manipulator';
-import { TestHeaderFormat } from './test-header-format';
-import { DocumentWriter } from './document-writer';
-import { FileParser } from './file-parser';
+import { AstTreeFinder } from './helpers/ast-tree-finder';
+import { StringManipulator } from './helpers/string-manipulator';
+import { FileParser } from './helpers/file-parser';
+import { DocumentWriter } from './helpers/document-writer';
+import { Regex } from './helpers/regex';
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
-	let disposable = vscode.commands.registerCommand('TestHelper.buildTestMethod', async () => {
+	let singleTestSelectionCommand = vscode.commands.registerCommand('TestHelper.buildTestMethod', async () => {
 		const activeEditor = vscode.window.activeTextEditor;
 		if (activeEditor) {
 			await vscode.window.withProgress({
@@ -27,11 +26,10 @@ export function activate(context: vscode.ExtensionContext) {
 
 				const lineContent: string = activeEditor.document.lineAt(activeEditor.selection.active.line).text;
 
-				var regex = new RegExp('([a-zA-Z{1}][a-zA-Z0-9_]+)(?=\\()', 'i');
+				var match: RegExpExecArray | null = Regex.findFonctionName(lineContent);
 
-				var match = regex.exec(lineContent);
 				if (!match) {
-					vscode.window.showErrorMessage('no function to test');
+					vscode.window.showErrorMessage('No function to test');
 				}
 
 				const functoTest = match![0] as string;
@@ -39,8 +37,6 @@ export function activate(context: vscode.ExtensionContext) {
 				progress.report({ increment: 20, message: `Generating unit test function template for ${functoTest}` });
 
 				const originalFileName = activeEditor.document.fileName as string;
-
-				progress.report({ increment: 40, message: `Finding test file for ${originalFileName}` });
 
 				// // File name end by component.ts => so it should become component.spec.ts
 				const associatedTestFileName = StringManipulator.insert(originalFileName, "spec.", originalFileName?.length as number - 2);
@@ -114,7 +110,17 @@ export function activate(context: vscode.ExtensionContext) {
 		};
 	});
 
-	context.subscriptions.push(disposable);
+	context.subscriptions.push(singleTestSelectionCommand);
+
+	const fileTestSelectionCommand = vscode.commands.registerCommand('TestHelper.buildTestMethodForEntireFile', () => {
+		// The code you place here will be executed every time your command is executed
+
+		// Display a message box to the user
+		vscode.window.showInformationMessage('Hello World!');
+	});
+
+	context.subscriptions.push(fileTestSelectionCommand);
+
 }
 
 // this method is called when your extension is deactivated

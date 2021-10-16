@@ -18,6 +18,10 @@
 			{
 				"command": "TestHelper.buildTestMethod",
 				"title": "Generate unit test for function declaration"
+			},
+			{
+				"command": "TestHelper.buildTestMethodForEntireFile",
+				"title": "Generate unit tests for entire file"
 			}
 		],
 		"menus": {
@@ -30,7 +34,7 @@
 			],
 			"explorer/context": [
 				{
-					"command": "TestHelper.buildTestMethod",
+					"command": "TestHelper.buildTestMethodForEntireFile",
 					"when": "resourceFilename !=~ /\\.spec\\.ts$/",
 					"group": "navigation"
 				}
