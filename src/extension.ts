@@ -3,6 +3,12 @@
 import * as vscode from 'vscode';
 import * as ts from 'typescript';
 import * as fs from 'fs';
+import { AstTreeFinder } from './ast-tree-finder';
+import { TemplateGenerator } from './template-generator';
+import { StringManipulator } from './string-manipulator';
+import { TestHeaderFormat } from './test-header-format';
+import { DocumentWriter } from './document-writer';
+import { FileParser } from './file-parser';
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -32,12 +38,12 @@ export function activate(context: vscode.ExtensionContext) {
 
 				progress.report({ increment: 20, message: `Generating unit test function template for ${functoTest}` });
 
-				const originalFileName = activeEditor.document.fileName;
+				const originalFileName = activeEditor.document.fileName as string;
 
 				progress.report({ increment: 40, message: `Finding test file for ${originalFileName}` });
 
 				// // File name end by component.ts => so it should become component.spec.ts
-				const associatedTestFileName = insertAt(originalFileName as string, originalFileName?.length as number - 2, "spec.");
+				const associatedTestFileName = StringManipulator.insert(originalFileName, "spec.", originalFileName?.length as number - 2);
 
 				fs.access(associatedTestFileName, fs.constants.R_OK | fs.constants.W_OK, (err: any) => {
 
@@ -50,15 +56,15 @@ export function activate(context: vscode.ExtensionContext) {
 						try {
 							progress.report({ increment: 70, message: `Preparing to generate test template for ${functoTest}` });
 
-							const activeSourceFile = getFileContent(originalFileName);
+							const activeSourceFile = FileParser.getFileContent(originalFileName);
+							const testSourceFile = FileParser.getFileContent(associatedTestFileName);
 
-							var className = findClassNameMethod(activeSourceFile.sourceFile);
-
-							const testSourceFile = getFileContent(associatedTestFileName);
+							var className = AstTreeFinder.findClassNameMethod(activeSourceFile.sourceFile);
 
 							var testTemplateCursorPosition = 0;
 
-							const [hasDescribeExpression, hasOnlyClassDescribeStatement, lastDescribePosition] = findLastDescribeExpressionStatement(testSourceFile.sourceFile);
+							const [hasDescribeExpression, hasOnlyClassDescribeStatement, lastDescribePosition] =
+								AstTreeFinder.findLastDescribeExpressionStatement(testSourceFile.sourceFile);
 
 							if (!hasDescribeExpression) {
 								vscode.window.showInformationMessage(`Could not find the describe enclosing tag for test file ${associatedTestFileName}`);
@@ -66,11 +72,16 @@ export function activate(context: vscode.ExtensionContext) {
 							}
 							else if (hasOnlyClassDescribeStatement) {
 								progress.report({ increment: 80, message: `Writing test template for ${functoTest} using 'it' format.` });
-								const [hasItStatement, lastItStatementPosition] = findLastItExpressionStatement(testSourceFile.sourceFile);
+								const [hasItStatement, lastItStatementPosition] = AstTreeFinder.findLastItExpressionStatement(testSourceFile.sourceFile);
 								if (hasItStatement) {
 									testTemplateCursorPosition = lastItStatementPosition;
-									addItTestTemplate(testSourceFile.fileContent, functoTest, className,
-										associatedTestFileName, testTemplateCursorPosition);
+
+									if (testSourceFile.fileContent.includes(`it("should ${functoTest}"`)) {
+										vscode.window.showInformationMessage(`Function : '${functoTest}'' already has a test case in ${associatedTestFileName}`);
+									}
+									else {
+										DocumentWriter.writeItTestTemplate(functoTest, className, associatedTestFileName, testTemplateCursorPosition);
+									}
 								}
 								else {
 									vscode.window.showInformationMessage(`Could not find the describe and It statement for test file ${associatedTestFileName}, 
@@ -79,7 +90,14 @@ export function activate(context: vscode.ExtensionContext) {
 							} else {
 								progress.report({ increment: 80, message: `Writing test template for ${functoTest} using 'describe' format.` });
 								testTemplateCursorPosition = lastDescribePosition;
-								addDescribeTestTemplate(testSourceFile.fileContent, functoTest, className, associatedTestFileName, testTemplateCursorPosition);
+
+								if (testSourceFile.fileContent.includes(`describe("${functoTest}"`) ||
+									testSourceFile.fileContent.includes(`describe(nameof<${className}>("${functoTest}")`)) {
+									vscode.window.showInformationMessage(`Function : '${functoTest}'' already has a test case in ${associatedTestFileName}`);
+								}
+								else {
+									DocumentWriter.writeDescribeTestTemplate(functoTest, className, associatedTestFileName, testTemplateCursorPosition);
+								}
 							}
 
 							progress.report({ increment: 100, message: `Template generation completed for function: ${functoTest}` });
@@ -99,193 +117,8 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(disposable);
 }
 
-function getFileContent(fileName: string): { fileContent: string, sourceFile: ts.SourceFile } {
-	const fileContent = fs.readFileSync(fileName, 'utf8') as string;
-	const sourceFile = createSourceFile(fileName, fileContent);
-	return { fileContent, sourceFile };
-}
-
-function createSourceFile(associatedTestFileName: string, testFileContent: string): ts.SourceFile {
-	return ts.createSourceFile(
-		associatedTestFileName,  // fileName
-		testFileContent, // source text
-		ts.ScriptTarget.Latest, // file version
-		true
-	);
-}
-
-function addDescribeTestTemplate(testFileContent: string, functoTest: string, className: string, associatedTestFileName: string, testTemplateCursorPosition: number) {
-	if (testFileContent.includes(`describe("${functoTest}"`) ||
-		testFileContent.includes(`describe(nameof<${className}>("${functoTest}")`)) {
-		vscode.window.showInformationMessage(`Function : '${functoTest}'' already has a test case in ${associatedTestFileName}`);
-	}
-	else {
-		writeTestTemplate(functoTest, className, associatedTestFileName, TestHeaderFormat.describe, testTemplateCursorPosition);
-	}
-}
-
-function addItTestTemplate(testFileContent: string, functoTest: string, className: string, associatedTestFileName: string, testTemplateCursorPosition: number) {
-	if (testFileContent.includes(`it("should ${functoTest}"`)) {
-		vscode.window.showInformationMessage(`Function : '${functoTest}'' already has a test case in ${associatedTestFileName}`);
-	}
-	else {
-		writeTestTemplate(functoTest, className, associatedTestFileName, TestHeaderFormat.it, testTemplateCursorPosition);
-	}
-}
-
-function writeTestTemplate(functoTest: string, className: string, associatedTestFileName: string, testHeaderFormat: TestHeaderFormat, testTemplateCursorPosition: number) {
-	// vscode.window.showInformationMessage(`Generating test case for function : '${functoTest}'`);
-	var template = testHeaderFormat === TestHeaderFormat.describe ?
-		generateDescribeTestTemplate(className, functoTest) :
-		generateItTestTemplate(functoTest);
-
-	var fileContent = fs.readFileSync(associatedTestFileName).toString();
-
-	const newFileContent = insert(fileContent, testTemplateCursorPosition, template);
-
-	fs.open(associatedTestFileName, 'w', function (err: any, fd: any) {
-		if (err) {
-			console.log('Cant open file');
-		} else {
-			var bufferedText = Buffer.from(newFileContent);
-			fs.write(fd, bufferedText, 0, bufferedText.length, 0,
-				(err: NodeJS.ErrnoException | null, writtenbytes: number, buffer: any) => {
-					if (err) {
-						console.log('Cant write to file');
-						vscode.window.showInformationMessage(`Template generation failed for function: ${functoTest}`);
-					} else {
-						console.log(writtenbytes + ' characters added to file');
-						// vscode.window.showInformationMessage(`Template generation completed for function: ${functoTest}`);
-					}
-				});
-		}
-	});
-}
-
 // this method is called when your extension is deactivated
 export function deactivate() {
-}
-
-function insertAt(originalString: string, index: number, stringToAdd: string) {
-	return originalString.substr(0, index) + stringToAdd + originalString.substr(index);
-}
-
-function generateDescribeTestTemplate(className: string, functionToTest: string): string {
-	return `\n\n	describe(nameof<${className}>("${functionToTest}"), () => {
-		it("should ", () => {
-			// Arrange
-
-			// Act
-
-			// Assert
-
-		});
-	});`;
-}
-
-function generateItTestTemplate(functionToTest: string): string {
-	return `\n\n	it("should ${functionToTest}", () => {
-			// Arrange
-
-			// Act
-
-			// Assert
-	});`;
-}
-
-function isClassNameDeclaration(node: ts.Node): [isclassdecl: boolean, value: string | null] {
-	if (ts.isClassDeclaration(node)) {
-		return [true, node?.name?.escapedText as string];
-	};
-
-	return [false, null];
-}
-
-function findClassNameMethod(activeSourceFile: ts.Node): string {
-	var className = "";
-	activeSourceFile.forEachChild(child => {
-		const [isclassdecl, value] = isClassNameDeclaration(child);
-		if (isclassdecl) {
-			className = value as string;
-		}
-	});
-
-	return className;
-}
-
-function findLastItExpressionStatement(node: ts.Node): [hasItStatement: boolean, lastItStatementPosition: number] {
-	var nodeParser = new Queue<ts.Node>();
-	nodeParser.push(node);
-
-	var nodesEnds: number[] = [];
-	while (nodeParser.count() > 0) {
-		const treeNode: ts.Node = nodeParser.pop() as ts.Node;
-
-		treeNode.forEachChild(child => {
-			const [isclassdecl, node] = isExpressionMethodDeclaration("it", child);
-			if (isclassdecl) {
-				nodesEnds.push(node?.getEnd() || 0);
-			}
-			nodeParser.push(child);
-		});
-	}
-
-	if (nodesEnds.length < 1) {
-		return [false, 0];
-	}
-
-	// Since there wont be any duplicate
-	const largestPosition = nodesEnds.sort((a, b) => { return b - a; })[0];
-
-	return [true, largestPosition];
-}
-
-function findLastDescribeExpressionStatement(node: ts.Node): [hasDescribeStatement: boolean, hasOnlyClassDescribeStatement: boolean, lastDescribePosition: number] {
-	var nodeParser = new Queue<ts.Node>();
-	nodeParser.push(node);
-
-	var nodesEnds: number[] = [];
-	while (nodeParser.count() > 0) {
-		const treeNode: ts.Node = nodeParser.pop() as ts.Node;
-
-		treeNode.forEachChild(child => {
-			const [isclassdecl, node] = isExpressionMethodDeclaration("describe", child);
-			if (isclassdecl) {
-				nodesEnds.push(node?.getEnd() || 0);
-			}
-			nodeParser.push(child);
-		});
-	}
-
-	return describeStatementAstTreeOutput(nodesEnds);
-}
-
-function describeStatementAstTreeOutput(nodesEnds: number[]): [hasDescribeStatement: boolean, hasOnlyClassDescribeStatement: boolean, lastDescribeTestPosition: number] {
-	// If no describe, the test component is not set correctly since it does not have a Describe("TestComponent").
-	if (nodesEnds.length === 0) {
-		return [false, false, 0];
-	}
-
-	// Has only class describe statement
-	if (nodesEnds.length === 1) {
-		return [true, true, 0];
-	}
-
-	// Since there wont be any duplicate and we dont want the class describe
-	const secondLargestPosition = nodesEnds.sort((a, b) => { return b - a; })[1];
-
-	// The largest describe position is the test file component itself e.g Describe("TestComponent")
-	return [true, false, secondLargestPosition];
-}
-
-function isExpressionMethodDeclaration(declarationType: string, node: ts.Node): [isDeclaration: boolean, node: ts.Node | null] {
-	if (ts.isExpressionStatement(node)) {
-		if (node.expression.getText().startsWith(declarationType)) {
-			return [true, node];
-		}
-	}
-
-	return [false, null];
 }
 
 // Use printRecursiveFrom(activeSourceFile, 0, activeSourceFile);
@@ -316,10 +149,6 @@ function isFunctionLikeDeclaration(
 	);
 }
 
-function insert(str: string, index: number, value: string): string {
-	return str.substr(0, index) + value + str.substr(index);
-}
-
 function getAccessorDeclaration(node: ts.Node): ts.SyntaxKind | undefined {
 	const modifiers: ts.NodeArray<ts.Modifier> | undefined = node.modifiers;
 	if (modifiers) {
@@ -327,22 +156,4 @@ function getAccessorDeclaration(node: ts.Node): ts.SyntaxKind | undefined {
 	}
 
 	return undefined;
-}
-
-class Queue<T> {
-	_store: T[] = [];
-	push(val: T) {
-		this._store.push(val);
-	}
-	pop(): T | undefined {
-		return this._store.shift();
-	}
-	count(): number {
-		return this._store.length;
-	}
-}
-
-const enum TestHeaderFormat {
-	it,
-	describe,
 }
