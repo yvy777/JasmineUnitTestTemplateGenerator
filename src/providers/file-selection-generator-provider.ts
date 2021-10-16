@@ -7,9 +7,9 @@ import { DocumentWriter } from '../helpers/document-writer';
 
 export class FileSelectionGeneratorProvider {
     public static register(context: vscode.ExtensionContext): vscode.Disposable {
-        return vscode.commands.registerCommand('TestHelper.buildTestMethodForEntireFile', async (vscodeResourceUri: vscode.Uri) => {
+        return vscode.commands.registerCommand('TestHelper.buildTestMethodForEntireFile', (vscodeResourceUri: vscode.Uri) => {
 
-            await vscode.window.withProgress({
+            vscode.window.withProgress({
                 location: vscode.ProgressLocation.Notification,
                 title: "Starting test template process generation!",
                 cancellable: true

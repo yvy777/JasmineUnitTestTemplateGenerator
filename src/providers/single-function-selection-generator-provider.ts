@@ -9,10 +9,10 @@ import { StringManipulator } from '../helpers/string-manipulator';
 export class SingleFunctionSelectionGeneratorProvider {
 
     public static register(context: vscode.ExtensionContext): vscode.Disposable {
-        return vscode.commands.registerCommand('TestHelper.buildTestMethod', async () => {
+        return vscode.commands.registerCommand('TestHelper.buildTestMethod', () => {
             const activeEditor = vscode.window.activeTextEditor;
             if (activeEditor) {
-                await vscode.window.withProgress({
+                vscode.window.withProgress({
                     location: vscode.ProgressLocation.Notification,
                     title: "Starting test template process generation!",
                     cancellable: true

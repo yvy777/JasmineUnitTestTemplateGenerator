@@ -9,12 +9,11 @@ import { FileSelectionGeneratorProvider as FileSelectionGeneratorProvider } from
 // your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
 
-	// For single method selection
-	context.subscriptions.push(SingleFunctionSelectionGeneratorProvider.register(context));
-
 	// For entire file selection
 	context.subscriptions.push(FileSelectionGeneratorProvider.register(context));
 
+	// For single method selection
+	context.subscriptions.push(SingleFunctionSelectionGeneratorProvider.register(context));
 }
 
 // this method is called when your extension is deactivated
