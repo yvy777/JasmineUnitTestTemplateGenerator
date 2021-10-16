@@ -35,7 +35,7 @@
 			"explorer/context": [
 				{
 					"command": "TestHelper.buildTestMethodForEntireFile",
-					"when": "resourceFilename !=~ /\\.spec\\.ts$/",
+					"when": "resourceFilename !=~ /\\.spec\\.ts$/ && !explorerResourceIsFolder",
 					"group": "navigation"
 				}
 			]

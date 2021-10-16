@@ -69,17 +69,13 @@ export class AstTreeFinder {
 		while (nodeParser.count() > 0) {
 			const treeNode: ts.Node = nodeParser.pop() as ts.Node;
 
-			treeNode.forEachChild(child => {
-				const isFunction = isFunctionLikeDeclaration(child);
-				if (isFunction) {
+			treeNode.forEachChild((child: ts.Node) => {
+				if (ts.isFunctionLike(child)) {
 					const modifiers = child.modifiers;
 					if (modifiers) {
 						modifiers.forEach(element => {
 							if (element.kind === ts.SyntaxKind.PublicKeyword) {
-								var methodName = child.name;
-								if (methodName) {
-									nodesPublicDeclaration.push(methodName.getText());
-								}
+								nodesPublicDeclaration.push(child?.name?.getText() as string);				
 							}
 						});
 					}
@@ -136,15 +132,15 @@ function describeStatementAstTreeOutput(nodesEnds: number[]): [hasDescribeStatem
 	return [true, false, secondLargestPosition];
 }
 
-function isFunctionLikeDeclaration(
-	node: ts.Node
-): node is ts.FunctionLikeDeclaration {
-	return (
-		ts.isGetAccessorDeclaration(node) ||
-		ts.isSetAccessorDeclaration(node) ||
-		ts.isMethodDeclaration(node) ||
-		ts.isArrowFunction(node) ||
-		ts.isFunctionDeclaration(node) ||
-		ts.isFunctionExpression(node)
-	);
-}
+// function isFunctionLikeDeclaration(
+// 	node: ts.Node
+// ): boolean {
+// 	return (
+// 		ts.isGetAccessorDeclaration(node) ||
+// 		ts.isSetAccessorDeclaration(node) ||
+// 		ts.isMethodDeclaration(node) ||
+// 		ts.isArrowFunction(node) ||
+// 		ts.isFunctionDeclaration(node) ||
+// 		ts.isFunctionExpression(node)
+// 	);
+// }

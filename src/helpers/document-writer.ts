@@ -14,18 +14,48 @@ export class DocumentWriter {
 
         writeTestTemplate(functoTest, className, associatedTestFileName, TestHeaderFormat.it, testTemplateCursorPosition);
     }
+
+    static writeDescribeTestTemplates(functoTest: string[], className: string, fileName: string, testTemplateCursorPosition: number) {
+        writeTestTemplates(functoTest, className, fileName, TestHeaderFormat.describe, testTemplateCursorPosition);
+    }
+
+    static writeItTestTemplates(functoTest: string[], className: string, associatedTestFileName: string, testTemplateCursorPosition: number) {
+
+        writeTestTemplates(functoTest, className, associatedTestFileName, TestHeaderFormat.it, testTemplateCursorPosition);
+    }
+
+}
+
+function writeTestTemplates(funcToTests: string[], className: string, fileName: string, testHeaderFormat: TestHeaderFormat, testTemplateCursorPosition: number) {
+    var testTemplates: string[] = funcToTests.map(funcToTest => getTestFunctionTemplate(testHeaderFormat, className, funcToTest));
+
+    var generalTemplate: string = testTemplates.join("");
+
+    var fileContent = fs.readFileSync(fileName).toString();
+
+    const newFileContent = StringManipulator.insert(fileContent, generalTemplate, testTemplateCursorPosition);
+
+    writeToFile(fileName, newFileContent);
 }
 
 function writeTestTemplate(functoTest: string, className: string, fileName: string, testHeaderFormat: TestHeaderFormat, testTemplateCursorPosition: number) {
     // vscode.window.showInformationMessage(`Generating test case for function : '${functoTest}'`);
-    var template = testHeaderFormat === TestHeaderFormat.describe ?
-        TemplateGenerator.generateDescribeTestTemplate(className, functoTest) :
-        TemplateGenerator.generateItTestTemplate(functoTest);
+    var testTemplate = getTestFunctionTemplate(testHeaderFormat, className, functoTest);
 
     var fileContent = fs.readFileSync(fileName).toString();
 
-    const newFileContent = StringManipulator.insert(fileContent, template, testTemplateCursorPosition);
+    const newFileContent = StringManipulator.insert(fileContent, testTemplate, testTemplateCursorPosition);
 
+    writeToFile(fileName, newFileContent);
+}
+
+function getTestFunctionTemplate(testHeaderFormat: TestHeaderFormat, className: string, functoTest: string) {
+    return testHeaderFormat === TestHeaderFormat.describe ?
+        TemplateGenerator.generateDescribeTestTemplate(className, functoTest) :
+        TemplateGenerator.generateItTestTemplate(functoTest);
+}
+
+function writeToFile(fileName: string, newFileContent: string) {
     fs.open(fileName, 'w', function (err: any, fd: any) {
         if (err) {
             console.log('Cant open file');
