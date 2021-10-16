@@ -36,18 +36,7 @@ function printRecursiveFrom(
 	);
 }
 
-function isFunctionLikeDeclaration(
-	node: ts.Node
-): node is ts.FunctionLikeDeclaration {
-	return (
-		ts.isGetAccessorDeclaration(node) ||
-		ts.isSetAccessorDeclaration(node) ||
-		ts.isMethodDeclaration(node) ||
-		ts.isArrowFunction(node) ||
-		ts.isFunctionDeclaration(node) ||
-		ts.isFunctionExpression(node)
-	);
-}
+
 
 function getAccessorDeclaration(node: ts.Node): ts.SyntaxKind | undefined {
 	const modifiers: ts.NodeArray<ts.Modifier> | undefined = node.modifiers;

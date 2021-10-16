@@ -60,6 +60,36 @@ export class AstTreeFinder {
 
 		return describeStatementAstTreeOutput(nodesEnds);
 	}
+
+	static findAllPublicExpressionStatement(node: ts.Node): string[] {
+		var nodeParser = new Queue<ts.Node>();
+		nodeParser.push(node);
+
+		var nodesPublicDeclaration: string[] = [];
+		while (nodeParser.count() > 0) {
+			const treeNode: ts.Node = nodeParser.pop() as ts.Node;
+
+			treeNode.forEachChild(child => {
+				const isFunction = isFunctionLikeDeclaration(child);
+				if (isFunction) {
+					const modifiers = child.modifiers;
+					if (modifiers) {
+						modifiers.forEach(element => {
+							if (element.kind === ts.SyntaxKind.PublicKeyword) {
+								var methodName = child.name;
+								if (methodName) {
+									nodesPublicDeclaration.push(methodName.getText());
+								}
+							}
+						});
+					}
+				}
+				nodeParser.push(child);
+			});
+		}
+
+		return nodesPublicDeclaration;
+	}
 }
 
 function isClassNameDeclaration(node: ts.Node): [isclassdecl: boolean, value: string | null] {
@@ -75,6 +105,14 @@ function isExpressionMethodDeclaration(declarationType: string, node: ts.Node): 
 		if (node.expression.getText().startsWith(declarationType)) {
 			return [true, node];
 		}
+	}
+
+	return [false, null];
+}
+
+function isPublicMethodDeclaration(declarationType: string, node: ts.Node): [isDeclaration: boolean, node: ts.Node | null] {
+	if (ts.isExpressionStatement(node)) {
+		return [true, node];
 	}
 
 	return [false, null];
@@ -96,4 +134,17 @@ function describeStatementAstTreeOutput(nodesEnds: number[]): [hasDescribeStatem
 
 	// The largest describe position is the test file component itself e.g Describe("TestComponent")
 	return [true, false, secondLargestPosition];
+}
+
+function isFunctionLikeDeclaration(
+	node: ts.Node
+): node is ts.FunctionLikeDeclaration {
+	return (
+		ts.isGetAccessorDeclaration(node) ||
+		ts.isSetAccessorDeclaration(node) ||
+		ts.isMethodDeclaration(node) ||
+		ts.isArrowFunction(node) ||
+		ts.isFunctionDeclaration(node) ||
+		ts.isFunctionExpression(node)
+	);
 }

@@ -54,6 +54,8 @@ export class SingleFunctionSelectionGeneratorProvider {
 
                                 var className = AstTreeFinder.findClassNameMethod(activeSourceFile.sourceFile);
 
+                                AstTreeFinder.findAllPublicExpressionStatement(activeSourceFile.sourceFile);
+
                                 var testTemplateCursorPosition = 0;
 
                                 const [hasDescribeExpression, hasOnlyClassDescribeStatement, lastDescribePosition] =
