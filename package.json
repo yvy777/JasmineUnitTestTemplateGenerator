@@ -29,14 +29,14 @@
 			"editor/context": [
 				{
 					"command": "TestHelper.buildTestMethod",
-					"when": "!explorerResourceIsFolder && resourceFilename =~ /\\.component\\.ts$/",
+					"when": "!explorerResourceIsFolder && resourceExtname == .ts && resourceFilename =~ /^((?!spec).)*$/",
 					"group": "navigation"
 				}
 			],
 			"explorer/context": [
 				{
 					"command": "TestHelper.buildTestMethodForEntireFile",
-					"when": "!explorerResourceIsFolder && resourceFilename =~ /\\.component\\.ts$/",
+					"when": "!explorerResourceIsFolder && resourceExtname == .ts && resourceFilename =~ /^((?!spec).)*$/",
 					"group": "navigation"
 				}
 			]
