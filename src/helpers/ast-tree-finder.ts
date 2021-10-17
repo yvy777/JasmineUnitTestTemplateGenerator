@@ -106,14 +106,6 @@ function isExpressionMethodDeclaration(declarationType: string, node: ts.Node): 
 	return [false, null];
 }
 
-function isPublicMethodDeclaration(declarationType: string, node: ts.Node): [isDeclaration: boolean, node: ts.Node | null] {
-	if (ts.isExpressionStatement(node)) {
-		return [true, node];
-	}
-
-	return [false, null];
-}
-
 function describeStatementAstTreeOutput(nodesEnds: number[]): [hasDescribeStatement: boolean, hasOnlyClassDescribeStatement: boolean, lastDescribeTestPosition: number] {
 	// If no describe, the test component is not set correctly since it does not have a Describe("TestComponent").
 	if (nodesEnds.length === 0) {
