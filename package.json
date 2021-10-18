@@ -30,14 +30,14 @@
 				{
 					"command": "TestHelper.buildTestMethod",
 					"when": "!explorerResourceIsFolder && resourceExtname == .ts && resourceFilename =~ /^((?!spec).)*$/",
-					"group": "navigation"
+					"group": "1_modification"
 				}
 			],
 			"explorer/context": [
 				{
 					"command": "TestHelper.buildTestMethodForEntireFile",
 					"when": "!explorerResourceIsFolder && resourceExtname == .ts && resourceFilename =~ /^((?!spec).)*$/",
-					"group": "navigation"
+					"group": "7_modification"
 				}
 			]
 		}
