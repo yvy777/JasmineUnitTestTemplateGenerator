@@ -10,7 +10,7 @@ Below is a small demo about it's 2 main usages.
 <img src="assets/docs/SingleFunctionUnitTestGeneration.gif" width="481px">
 
 2- To generate all public method declarations by clicking on file: 
-<img src="assets/docs/fileunittestgeneration.gif" width="481px">
+<img src="assets/docs/FileUnitTestGeneration.gif" width="481px">
 
 ## Features
 
