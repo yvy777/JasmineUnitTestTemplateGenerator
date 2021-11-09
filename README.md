@@ -43,6 +43,9 @@ describe("Component", () => {
   });
 });
 ```
+- If there is a mix of jasmine syntax already in spec.ts file. 
+The nested describe syntax will be the one use as base template for future test generation.
+
 ## Requirements
 
 Must have VS Code version 1.57.0 or higher.
@@ -50,6 +53,9 @@ Must have VS Code version 1.57.0 or higher.
 ## Known Issues
 
 - If there is no "it" or "describe" test already present in the spec.ts file than the template generation will fail.
+Normally the constructor test should always be present and serve as the guideline. 
+
+
 
 ## Release Notes
 
@@ -60,7 +66,8 @@ Users appreciate release notes as you update your extension.
 Initial release of Test template generator 
 
 ## Limitations
-- If there is no "it" or "describe" test already present in the spec.ts file than the template generation will fail.
+- If there is no "it" or "describe" test already present in the spec.ts file than the template generation will fail. 
+Normally the constructor test should always be present and serve as the guideline.
 
 
 ##  Releases

@@ -1,6 +1,6 @@
 export class TemplateGenerator {
     static generateDescribeTestTemplate(className: string, functionToTest: string): string {
-        return `\n\n	describe(nameof<${className}>("${functionToTest}"), () => {
+        return `\n\n	describe("${functionToTest}", () => {
 		it("should ", () => {
 			// Arrange
 
