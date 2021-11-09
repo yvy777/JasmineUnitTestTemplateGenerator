@@ -4,7 +4,7 @@ export class StringManipulator {
 	}
 
 	static filterAlreadyExistingDescribeDeclarationsFromSourceFile(allPublicDeclarations: string[], className: string, sourceFileContent: string): string[] {
-		var filteredPublicDeclarations: string[] = [];
+		const filteredPublicDeclarations: string[] = [];
 
 		// Filter already existing test
 		allPublicDeclarations.forEach(functoTest => {
@@ -18,7 +18,7 @@ export class StringManipulator {
 	}
 
 	static filterAlreadyExistingItDeclarationsFromSourceFile(allPublicDeclarations: string[], sourceFileContent: string): string[] {
-		var filteredPublicDeclarations: string[] = [];
+		const filteredPublicDeclarations: string[] = [];
 
 		// Filter already existing test
 		allPublicDeclarations.forEach(functoTest => {

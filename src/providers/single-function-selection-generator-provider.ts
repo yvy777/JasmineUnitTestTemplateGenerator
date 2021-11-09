@@ -1,15 +1,15 @@
-import * as vscode from 'vscode';
-import * as fs from 'fs';
-import { AstTreeFinder } from '../helpers/ast-tree-finder';
-import { DocumentWriter } from '../helpers/document-writer';
-import { FileParser } from '../helpers/file-parser';
-import { Regex } from '../helpers/regex';
-import { StringManipulator } from '../helpers/string-manipulator';
+import * as vscode from "vscode";
+import * as fs from "fs";
+import { AstTreeFinder } from "../helpers/ast-tree-finder";
+import { DocumentWriter } from "../helpers/document-writer";
+import { FileParser } from "../helpers/file-parser";
+import { Regex } from "../helpers/regex";
+import { StringManipulator } from "../helpers/string-manipulator";
 
 export class SingleFunctionSelectionGeneratorProvider {
 
-    public static register(context: vscode.ExtensionContext): vscode.Disposable {
-        return vscode.commands.registerCommand('TestHelper.buildTestMethod', () => {
+    public static register(_ : vscode.ExtensionContext): vscode.Disposable {
+        return vscode.commands.registerCommand("TestHelper.buildTestMethod", () => {
 
             const activeEditor = vscode.window.activeTextEditor;
             if (activeEditor) {
@@ -25,10 +25,10 @@ export class SingleFunctionSelectionGeneratorProvider {
 
                     const lineContent: string = activeEditor.document.lineAt(activeEditor.selection.active.line).text;
 
-                    var match: RegExpExecArray | null = Regex.findFonctionName(lineContent);
+                    const match: RegExpExecArray | null = Regex.findFonctionName(lineContent);
 
                     if (!match) {
-                        vscode.window.showErrorMessage('No function to test');
+                        vscode.window.showErrorMessage("No function to test");
                     }
 
                     const functoTest = match![0] as string;
@@ -54,9 +54,9 @@ export class SingleFunctionSelectionGeneratorProvider {
                                 const activeSourceFile = FileParser.getFileContent(originalFileName);
                                 const testSourceFile = FileParser.getFileContent(associatedTestFileName);
 
-                                var className = AstTreeFinder.findClassNameMethod(activeSourceFile.sourceFile);
+                                const className = AstTreeFinder.findClassNameMethod(activeSourceFile.sourceFile);
 
-                                var testTemplateCursorPosition = 0;
+                                let testTemplateCursorPosition = 0;
 
                                 const [hasDescribeExpression, hasOnlyClassDescribeStatement, lastDescribePosition] =
                                     AstTreeFinder.findLastDescribeExpressionStatement(testSourceFile.sourceFile);
@@ -108,8 +108,8 @@ export class SingleFunctionSelectionGeneratorProvider {
                 });
             }
             else {
-                vscode.window.showErrorMessage('Could not find any active document to begin test generating');
-            };
+                vscode.window.showErrorMessage("Could not find any active document to begin test generating");
+            }
         });
     }
 }

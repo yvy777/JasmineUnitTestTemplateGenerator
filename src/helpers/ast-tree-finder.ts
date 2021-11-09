@@ -3,7 +3,7 @@ import { Queue } from "./queue";
 
 export class AstTreeFinder {
 	static findClassNameMethod(activeSourceFile: ts.Node): string {
-		var className = "";
+		let className = "";
 		activeSourceFile.forEachChild(child => {
 			const [isclassdecl, value] = isClassNameDeclaration(child);
 			if (isclassdecl) {
@@ -15,10 +15,10 @@ export class AstTreeFinder {
 	}
 
 	static findLastItExpressionStatement(node: ts.Node): [hasItStatement: boolean, lastItStatementPosition: number] {
-		var nodeParser = new Queue<ts.Node>();
+		const nodeParser = new Queue<ts.Node>();
 		nodeParser.push(node);
 
-		var nodesEnds: number[] = [];
+		const nodesEnds: number[] = [];
 		while (nodeParser.count() > 0) {
 			const treeNode: ts.Node = nodeParser.pop() as ts.Node;
 
@@ -42,10 +42,10 @@ export class AstTreeFinder {
 	}
 
 	static findLastDescribeExpressionStatement(node: ts.Node): [hasDescribeStatement: boolean, hasOnlyClassDescribeStatement: boolean, lastDescribePosition: number] {
-		var nodeParser = new Queue<ts.Node>();
+		const nodeParser = new Queue<ts.Node>();
 		nodeParser.push(node);
 
-		var nodesEnds: number[] = [];
+		const nodesEnds: number[] = [];
 		while (nodeParser.count() > 0) {
 			const treeNode: ts.Node = nodeParser.pop() as ts.Node;
 
@@ -62,10 +62,10 @@ export class AstTreeFinder {
 	}
 
 	static findAllPublicExpressionStatement(node: ts.Node): string[] {
-		var nodeParser = new Queue<ts.Node>();
+		const nodeParser = new Queue<ts.Node>();
 		nodeParser.push(node);
 
-		var nodesPublicDeclaration: string[] = [];
+		const nodesPublicDeclaration: string[] = [];
 		while (nodeParser.count() > 0) {
 			const treeNode: ts.Node = nodeParser.pop() as ts.Node;
 
@@ -91,7 +91,7 @@ export class AstTreeFinder {
 function isClassNameDeclaration(node: ts.Node): [isclassdecl: boolean, value: string | null] {
 	if (ts.isClassDeclaration(node)) {
 		return [true, node?.name?.escapedText as string];
-	};
+	}
 
 	return [false, null];
 }

@@ -2,7 +2,7 @@
 	"name": "jasminetesttemplategenerator",
 	"displayName": "Jasmine test template generator",
 	"publisher": "Genetec",
-	  "author": {
+	"author": {
 		"name": "Yvan Tran",
 		"email": "ytran777@hotmail.com"
 	},
@@ -12,11 +12,12 @@
 		"vscode": "^1.59.0"
 	},
 	"repository": {
-    "type": "git",
-    "url": "https://github.com/yvy777/AngularUnitTestTemplateGenerator.git"
+		"type": "git",
+		"url": "https://github.com/yvy777/AngularUnitTestTemplateGenerator.git"
 	},
 	"categories": [
-		"Snippets, Other"
+		"Snippets",
+		"Other"
 	],
 	"activationEvents": [
 		"onCommand:TestHelper.buildTestMethod",

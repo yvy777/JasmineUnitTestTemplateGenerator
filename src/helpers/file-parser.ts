@@ -1,9 +1,9 @@
-import * as ts from 'typescript';
-import * as fs from 'fs';
+import * as ts from "typescript";
+import * as fs from "fs";
 
 export class FileParser {
     static getFileContent(fileName: string): { fileContent: string, sourceFile: ts.SourceFile } {
-        const fileContent = fs.readFileSync(fileName, 'utf8') as string;
+        const fileContent = fs.readFileSync(fileName, "utf8") as string;
         const sourceFile = createSourceFile(fileName, fileContent);
         return { fileContent, sourceFile };
     }

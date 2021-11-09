@@ -1,13 +1,13 @@
-import * as vscode from 'vscode';
-import * as fs from 'fs';
-import { StringManipulator } from '../helpers/string-manipulator';
-import { AstTreeFinder } from '../helpers/ast-tree-finder';
-import { FileParser } from '../helpers/file-parser';
-import { DocumentWriter } from '../helpers/document-writer';
+import * as vscode from "vscode";
+import * as fs from "fs";
+import { StringManipulator } from "../helpers/string-manipulator";
+import { AstTreeFinder } from "../helpers/ast-tree-finder";
+import { FileParser } from "../helpers/file-parser";
+import { DocumentWriter } from "../helpers/document-writer";
 
 export class FileSelectionGeneratorProvider {
-    public static register(context: vscode.ExtensionContext): vscode.Disposable {
-        return vscode.commands.registerCommand('TestHelper.buildTestMethodForEntireFile', (vscodeResourceUri: vscode.Uri) => {
+    public static register(_: vscode.ExtensionContext): vscode.Disposable {
+        return vscode.commands.registerCommand("TestHelper.buildTestMethodForEntireFile", (vscodeResourceUri: vscode.Uri) => {
 
             vscode.window.withProgress({
                 location: vscode.ProgressLocation.Notification,
@@ -31,11 +31,11 @@ export class FileSelectionGeneratorProvider {
                         const activeSourceFile = FileParser.getFileContent(originalFileName);
                         const testSourceFile = FileParser.getFileContent(associatedTestFileName);
 
-                        var className = AstTreeFinder.findClassNameMethod(activeSourceFile.sourceFile);
+                        const className = AstTreeFinder.findClassNameMethod(activeSourceFile.sourceFile);
 
                         const allPublicDeclarations: string[] = AstTreeFinder.findAllPublicExpressionStatement(activeSourceFile.sourceFile);
 
-                        var testTemplateCursorPosition = 0;
+                        let testTemplateCursorPosition = 0;
 
                         const [hasDescribeExpression, hasOnlyClassDescribeStatement, lastDescribePosition] =
                             AstTreeFinder.findLastDescribeExpressionStatement(testSourceFile.sourceFile);
