@@ -1,7 +1,8 @@
 
+
 # Jasmine test template generator README
 
-This extension gives you the ability to generate test cases by a single click.
+This extension gives you the ability to generate [Jasmine](https://jasmine.github.io/) test cases by a single click.
  
 Removing the need for redundant copy paste and increasing efficiency when generating unit tests.
 
@@ -66,6 +67,7 @@ Users appreciate release notes as you update your extension.
 Initial release of Test template generator 
 
 ## Limitations
+- Only typescript language is supported right now for test generation.
 - If there is no "it" or "describe" test already present in the spec.ts file than the template generation will fail. 
 Normally the constructor test should always be present and serve as the guideline.
 
