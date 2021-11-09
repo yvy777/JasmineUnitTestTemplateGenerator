@@ -16,7 +16,7 @@
     "url": "https://github.com/yvy777/AngularUnitTestTemplateGenerator.git"
 	},
 	"categories": [
-		"Other"
+		"Snippets, Other"
 	],
 	"activationEvents": [
 		"onCommand:TestHelper.buildTestMethod",
