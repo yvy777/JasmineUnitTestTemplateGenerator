@@ -1,5 +1,3 @@
-
-
 # Jasmine test template generator README
 
 This extension gives you the ability to generate [Jasmine](https://jasmine.github.io/) test cases by a single click.
@@ -9,10 +7,10 @@ Removing the need for redundant copy paste and increasing efficiency when genera
 Below is a small demo about it's 2 main usages.
 
 1- To generate single method unit test declaration by clicking on wanted method to test:
-# <img src="assets/docs/SingleFunctionUnitTestGeneration.gif" width="481px">
+<img src="assets/docs/SingleFunctionUnitTestGeneration.gif" width="481px">
 
 2- To generate all public method declarations by clicking on file: 
-# <img src="assets/docs/FileUnitTestGeneration.gif" width="481px">
+<img src="assets/docs/fileunittestgeneration.gif" width="481px">
 
 ## Features
 
@@ -73,4 +71,4 @@ Normally the constructor test should always be present and serve as the guidelin
 
 
 ##  Releases
-# # # See the [changelog](CHANGELOG.md).
+ See the [changelog](CHANGELOG.md).

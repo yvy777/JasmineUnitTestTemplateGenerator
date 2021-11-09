@@ -1,10 +1,19 @@
 {
 	"name": "jasminetesttemplategenerator",
 	"displayName": "Jasmine test template generator",
+	"publisher": "Genetec",
+	  "author": {
+		"name": "Yvan Tran",
+		"email": "ytran777@hotmail.com"
+	},
 	"description": "Helper to create unit test template for jasmine test framework",
 	"version": "0.0.1",
 	"engines": {
 		"vscode": "^1.59.0"
+	},
+	"repository": {
+    "type": "git",
+    "url": "https://github.com/yvy777/AngularUnitTestTemplateGenerator.git"
 	},
 	"categories": [
 		"Other"
