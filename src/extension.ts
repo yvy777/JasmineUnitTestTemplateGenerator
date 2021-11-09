@@ -35,8 +35,6 @@ function printRecursiveFrom(
 	);
 }
 
-
-
 function getAccessorDeclaration(node: ts.Node): ts.SyntaxKind | undefined {
 	const modifiers: ts.NodeArray<ts.Modifier> | undefined = node.modifiers;
 	if (modifiers) {
