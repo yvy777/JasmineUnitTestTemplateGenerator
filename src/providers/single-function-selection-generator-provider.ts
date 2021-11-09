@@ -108,7 +108,6 @@ export class SingleFunctionSelectionGeneratorProvider {
                 });
             }
             else {
-
                 vscode.window.showErrorMessage('Could not find any active document to begin test generating');
             };
         });

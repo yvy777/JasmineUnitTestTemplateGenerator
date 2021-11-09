@@ -1,7 +1,7 @@
 {
-	"name": "unittesthelper",
-	"displayName": "Unit test helper",
-	"description": "",
+	"name": "jasminetesttemplategenerator",
+	"displayName": "Jasmine test template generator",
+	"description": "Helper to create unit test template for jasmine test framework",
 	"version": "0.0.1",
 	"engines": {
 		"vscode": "^1.59.0"
