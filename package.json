@@ -6,6 +6,7 @@
 		"name": "Yvan Tran",
 		"email": "ytran777@hotmail.com"
 	},
+	"license": "MIT",
 	"description": "Helper to create unit test template for jasmine test framework",
 	"version": "0.0.1",
 	"engines": {
@@ -13,8 +14,17 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/yvy777/AngularUnitTestTemplateGenerator.git"
+		"url": "https://github.com/yvy777/AngularUnitTestTemplateGenerator"
 	},
+	"bugs": {
+		"url": "https://github.com/yvy777/AngularUnitTestTemplateGenerator/issues"
+	},
+	"homepage": "https://github.com/yvy777/AngularUnitTestTemplateGenerator",
+	"keywords": [
+		"Jasmine test generator",
+		"Jasmine template",
+		"jasmine helper"
+	],
 	"categories": [
 		"Snippets",
 		"Other"
@@ -25,6 +35,12 @@
 	],
 	"main": "./out/extension.js",
 	"contributes": {
+		"snippets": [
+			{
+				"language": "typescript",
+				"path": "./snippets/test-build.code-snippets"
+			}
+		],
 		"commands": [
 			{
 				"command": "TestHelper.buildTestMethod",
@@ -53,12 +69,18 @@
 		}
 	},
 	"scripts": {
-		"vscode:prepublish": "npm run compile",
+		"vscode:prepublish": "npm run -S esbuild-base -- --minify",
+		"esbuild-base": "esbuild ./src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node",
+		"esbuild": "npm run -S esbuild-base -- --sourcemap",
+		"esbuild-watch": "npm run -S esbuild-base -- --sourcemap --watch",
 		"compile": "tsc -p ./",
+		"deploy": "vsce publish",
 		"watch": "tsc -watch -p ./",
 		"pretest": "npm run compile && npm run lint",
-		"lint": "eslint src --ext ts",
-		"test": "node ./out/test/runTest.js"
+		"lint": "eslint .",
+		"lint-fix": "eslint . --fix",
+		"test": "node ./out/test/runTest.js",
+		"package": "vsce package -o dist/jasminetesttemplategenerator.vsix"
 	},
 	"devDependencies": {
 		"@types/glob": "^7.1.3",
@@ -67,6 +89,7 @@
 		"@types/vscode": "^1.59.0",
 		"@typescript-eslint/eslint-plugin": "^4.26.0",
 		"@typescript-eslint/parser": "^4.26.0",
+		"esbuild": "^0.13.13",
 		"eslint": "^7.27.0",
 		"glob": "^7.1.7",
 		"mocha": "^8.4.0",
